@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        
+        <h2> JavaScriptChess</h2>
+        <div id = "board">
+            board
+        </div>
+        <div id = "info">
+            info
+        </div>
+        
+        <script>
+            var map = array();
+            var canmove = array();
+            var move_color  = "white";
+            var move_from_x;
+            var move_from_y;
+            var pawn_attack_x ; // landmarks possible attak by pawn
+            var pawn_attack_y ;
+            var move_figure;
+            var to_figure;
+
+            function init_map() 
+            {
+                map = [x] [y]
+                map = 
+                [   //y0  y1 y2 y3
+                    [" R","P "," "," "," "," ","p "," r"], //x=0
+                    [" N"," P"," "," "," "," "," p"," n"], // x=1
+                    [" B"," P"," "," "," "," ","p "," b"], // x=2
+                    [" Q"," P"," "," "," "," "," p"," q"], //x=3
+                    [" K"," P"," "," "," "," "," p"," k"], // x=4
+                    ["B "," P"," "," "," "," "," p","b "], // x=5
+                    [" N"," P"," "," "," "," "," p"," n"], // x=6
+                    [" R"," P"," "," "," "," "," p"," r"] // x=7
+                ];
+            }
+            
+            function init_canmove()
+            {
+                canmove = 
+                //1   2   3   4   5   6   7   8 
+                [" "," "," "," "," "," "," "," "], // a
+                [" "," "," "," "," "," "," "," "], // b
+                [" "," "," "," "," "," "," ",""], // c
+                [" "," "," "," "," "," "," "," "], //d
+                [" ","1","2" ,"2"," "," "," "," "], // e
+                [" "," "," "," "," "," "," "," "], // f
+                [" "," "," "," "," "," ",""," "], // g
+                [" "," "," "," "," "," "," "," "] // h
+            };
+            function can_move (sx, sy, dx, dy)
+            {
+                if (!can_move_from (sx, sy))
+                    return false;
+                if(!can_move_to (dx, dy))
+                    return false;
+                if (!is_correct_move (sx, sy, dx, dy));
+                    return false;
+                if (!is_check_after_move (sx, sy, dx, dy))
+                    return true;
+                return false;
+
+            }
+            
+
+            function is_check_ater_move(sx, sy, dx, dy) 
+            {
+                move_figure(sx, sy, dx, dy);
+                turn_move();
+                var check = is_check(move_color);
+                turn_move();
+                back_figure(sx, sy, dx, dy);
+                return check;
+            }
+
+            function is_check(for_color) 
+            {
+                var king = find_figure(for_color === "white" ? "K" : "k"); // Declare 'king' with 'var'
+
+                for (var y = 0; y <= 7; y++) {
+                    for (var x = 0; x <= 7; x++) {
+                        if (get_color(x, y) === for_color && is_correct_move(x, y, king.x, king.y)) {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            function find_figure(figure) {
+                for(var x= 0; x <=7; x++) {
+                    for (var y= 0; y <= 7; y++) {
+                        if (map [x] [y] == figure)
+                            return {x:x, y:y};
+                    }
+                }
+                return {x: -1, y: -1};
+            }
+
+            function is_correct_move(sx, sy, dx, dy) 
+            {
+                var figure = map[sx][sy];
+                if (is_king(figure)) 
+                    return is_correct_king_move(sx, sy, dx, dy);
+                if (is_queen(figure))
+                    return is_correct_queen_move(sx, sy, dx, dy);
+                if (is_bishop(figure))
+                    return is_correct_bishop_move(sx, sy, dx, dy);
+                if (is_knight(figure)) 
+                    return is_correct_knight_move(sx, sy, dx, dy);
+                if (is_rook(figure)) 
+                    return is_correct_rook_move(sx, sy, dx, dy);
+                if (is_pawn(figure)) 
+                    return is_correct_pawn_move(sx, sy, dx, dy);
+                return false;
+            }
+
+            function is_king (figure){ return figure.toUpperCase() == "K";}
+            function is_queen (figure){ return figure.toUpperCase() == "Q";}
+            function is_bishop (figure){ return figure.toUpperCase() == "B";}
+            function is_knight (figure){ return figure.toUpperCase() == "N";}
+            function is_rook (figure){ return figure.toUpperCase() == "R";}
+            function is_pawn (figure){ return figure.toUpperCase() == "P";}
+            
+            function is_correct_line_move (sx, sy, dx, dy, figure)
+            {
+                var delta_x = Math.sign (dx - sx);
+                var delta_y = Math.sign (dy - sy);
+                if (!is_correct_line_delta_move (delta_x, delta_y, figure))
+                    return false;
+                do {
+                    sx += delta_x; 
+                    sy += delta_y;
+                    if (sx == dx && sy == dy)
+                        return true;
+                } while (is_empty (sx, sy));
+                return false;
+            }
+
+            function is_correct_line_delta (delta_x, delta_y, figure)
+            {
+                if (is_rook (figure))
+                    return is_correct_rook_delta (delta_x, delta_y);
+                if (is_bishop (figure))
+                    return is_correct_bishop_delta (delta_x, delta_y);
+                if (is_queen (figure))
+                    return is_correct_queen_delta (delta_x, delta_y);
+                return false;
+            }
+            function is_correct_rook_delta (delta_x, delta_y){
+                // return delta_x == 0 || delta_y == 0;
+                return Math.abs (delta_x) + Math.abs (delta_y) == 1;
+            }
+            function is_correct_bishop_delta (delta_x, delta_y){
+                return Math.abs (delta_x) + Math.abs (delta_y) == 2;
+            }
+            function is_correct_queen_delta (delta_x, delta_y){
+                return true;
+            }
+            function is_correct_queen_move (sx, sy, dx, dy, ){
+            return is_correct_line_move (sx, sy, dx, dy, "Q");   
+            }
+            function is_correct_king_move (sx, sy, dx, dy){
+                if (Math.abs (dx - sx) <= 1 && Math.abs (dy - sy) <= 1 )
+                    return true;
+                return false;
+            }
+
+            function is_correct_bishop_move (sx, sy, dx, dy){
+            //     return is_correct_line_move (sx, sy, dx, dy, "B");
+            //     if (Math.abs (delta_x) + Math.abs(delta_y) != 2)
+            //     return false;
+            //     do 
+            //    {
+
+            //     sx += delta_x;
+            //     sy += delta_y;
+            //     do{
+            //         sx += delta_x; 
+            //         sy += delta_y;
+            //         if (sx == dx && sy == dy)
+            //         return true;
+            //     }
+            //         while (is_empty (sx, sy))
+            //     return false;
+                return true;
+            }
+
+            function is_empty (x, y) {
+                if (!on_map (x, y)) return false;
+                return map [x] [y] == "  ";
+
+            }
+            function is_correct_knight_move (sx, sy, dx, dy){
+                if (Math.abs (dx - sx) == 1 && Math.abs (dy - sy) == 2)
+                    return true;
+                if (Math.abs (dx - sx) == 2 && Math.abs (dy - sy) == 1)
+                    return true;
+                return false
+            }
+            function is_correct_rook_move (sx, sy, dx, dy){
+            return is_correct_rook_move (sx, sy, dx, dy, "R");
+            }
+                
+            function is_empty (x, y) 
+            {
+                if (!on_map (x, y)) 
+                    return false;
+                return map [x] [y] == "  ";
+                // return map [x] [y] == " ";
+            }
+
+
+            function on_map (x, y) {
+                return (x >= 0 && x <= 7 && y >= 0 && y <=7);
+            }
+            
+            function is_correct_pawn_move (sx, sy, dx, dy)
+            {
+                // Check if the pawn is in the initial position (second or seventh rank)
+                if (sy < 1 || sy > 6) {
+                    return false;
+                }
+                // Determine the color of the pawn and call is_correct_sign_pawn_move accordingly
+                if (get_color(sx, sy) === "white") {
+                    return is_correct_sign_pawn_move(sx, sy, dx, dy, +1);
+                } else if (get_color(sx, sy) === "black") {
+                    return is_correct_sign_pawn_move(sx, sy, dx, dy, -1);
+                }
+                return false;
+            }
+
+            function is_correct_sign_pawn_move (sx, sy, dx, dy, sign)
+            {
+        
+
+                if (is_pawn_passant(sx, sy, dx, dy, sign)) {
+                    return true;
+                }
+
+                if (!is_empty(dx, dy)) {
+                    // Pawn capture
+                    if (Math.abs(dx - sx) !== 1) {
+                    return false;
+                    }
+                    return dy - sy === sign;
+                }
+
+                if (dx !== sx) {
+                    return false;
+                }
+
+                if (dy - sy === sign) {
+                    // Standard pawn move one square forward
+                    return true;
+                }
+
+                if (dy - sy === sign * 2) {
+                    // Pawn move two squares forward (initial move)
+                    if (sy !== 1 && sy !== 6) {
+                    return false;
+                    }
+                    return is_empty(sx, sy + sign);
+                }
+                return false;
+        }
+        
+            function is_pawn_passant (sx, sy, dx, dy, sign){
+                if (!(dx === pawn_attack_x && dy === pawn_attack_y && sy === pawn_attack_y)) {
+                    return false;
+                }
+
+                if (sign === 1) {
+                    // Only from row number 4, en passant attack is available
+                    if (sy !== 4) {
+                    return false;
+                    }
+                } else if (sign === -1) {
+                    // Only from row number 3, en passant attack is available
+                    if (sy !== 3) {
+                    return false;
+                    }
+                } else {
+                    // Invalid sign value
+                    return false;
+                }
+
+                // Check if the move is a valid en passant capture (one square diagonally)
+                return Math.abs(dx - sx) === 1;
+            }
+                // if (! (dx == pawn_attack_x && dy == pawn_attack_x && dy == pawn_attack_y))
+                // return false;
+                // if (sign == +1 && sy != 4) // only from row number 4 passant attack available
+                //     return false;
+                //     if (sign == -1 && sy != 3)
+                //     if (dy -sy != sign)
+                //     return false;
+                // return (Math.abs (dx - sx) == 1)
+                // }
+
+            // function show_map () 
+            // {
+            //     // pass
+            // }
+
+            function mark_moves_from() {
+                init_canmove();
+                for (var sx = 0; sx <= 7; sx++) {
+                    for (var sy = 0; sy <= 7; sy++) {
+                        for (var dx = 0; dx <= 7; dx++) {
+                            for (var dy = 0; dy <= 7; dy++) {
+                                if (can_move(sx, sy, dx, dy)) {
+                                    canmove[sx][sy] = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            // function mark_moves_from()
+            // {
+            //     init_canmove();
+            //     for(var sx = 0; sx < 7; sx++)
+            //     for (var sy = 0; sy <=7; sy++) 
+            //     for(var dx = 0; dx < 7; dx++)
+            //     for (var dy = 0; dy <=7; dy++) 
+            //     if (can_move(sx, sy, dx, dy))
+            //     canmove [sx] [sy] = 1;
+
+            // }
+            function mark_moves_to() 
+            {
+                init_canmove();
+                for (var x = 0; x <= 7; x++) {
+                    for (var y = 0; y <= 7; y++) {
+                        if (can_move_to(x, y)) {
+                            inf[x][y] = 2;
+                        }
+                    }
+                }
+            }
+
+            // function mark_moves_to()
+            // {
+            //     init_canmove();
+            //     for(var x = 0; x < 7; x++)
+            //     for (var y = 0; y <=7; y++) 
+            //     if (can_move_to(x,y))
+            //     inf [x] [y] = 2;
+
+            // }
+            function can_move_from()
+            {
+                if (!on_map (x, y)) 
+                    return false;
+                return get_color (x, y) == move_color;
+            }
+
+            function can_move_to(x,y)
+            {
+                if (!on_map (x, y)) 
+                    return false;
+                if(map [x] [y] == " ")
+                    return true;
+                return get_color (x, y) != move_color; //white can eat black
+            }
+
+            function get_color (x,y)
+            {
+                var figure = map [x] [y];
+                if (figure == "  ") 
+                    return "";
+                return (figure.toUpperCase() == figure) ? "white" : "black";
+            }
+
+            function click_box (x,y)
+            {
+                if (canmove[x] [y] == "1")
+                    click_box_from(x,y);
+                if (canmove [x] [y] == "2")
+                    alert (x + "" + y);
+            }
+
+            function click_box_from (x, y){
+
+                move_from_x = x;
+                move_from_y = y;
+                mark_moves_to ();
+                show_map ();
+            }
+
+
+            function move_figure(sx, sy, dx, dy){
+                from_figure = map [sx] [sy];
+                to_figure = map [dx] [dy];
+                map [dx] [dy] = from_figure;
+                map [sx] [sy]  = "  ";
+
+            }
+
+            function back_figure(sx, sy, dx, dy) 
+            {
+                map [sx] [sy] = from_figure;
+                map [dx] [dy] = to_figure;
+            }
+
+            function click_box_to (to_x, to_y)
+            {
+                move_fiugre (move_from_x, move_from_y, to_x, to_y);
+                promote_pawn (from_figure, to_x, to_y);
+
+                check_pawn_attack (from_figure, to_x, to_y);
+                
+                turn_move();
+                mark_moves_from();
+                show_map ();
+            }
+
+            function promote_pawn(from_figure,to_x, to_y)
+            {
+                if (!is_pawn(from_figure)) {
+                    return;
+                }
+                if (!(to_y === 7 || to_y === 0)) {
+                    return;
+                }
+                var figure;
+                do {
+                    figure = prompt("Select figure to promote: Q, R, B, or N", "Q");
+                } while (!(is_queen(figure) || is_rook(figure) || is_bishop(figure) || is_knight(figure)));
+                // Convert the selected figure to the correct color based on move_color
+                if (move_color === "white") {
+                    figure = figure.toUpperCase();
+                } else {
+                    figure = figure.toLowerCase();
+                }
+                // Update the map array with the promoted figure
+                map[to_x][to_y] = figure;
+
+                // if (!is_pawn (from_figure))
+                //     return;
+                // if (!( to_y == 7 || to_y == 0))
+                //     return;
+                // do {
+                //     figure = prompt("select figure to promote: Q R B N, "Q");
+                // } while(!( is_queen (figure) || is_rook (figure) || is_bishop (figure) || is_knight (figure)));
+
+                // if (move_color == "white")
+                // figure =  figure.toUpperCase ();
+                // else
+                // figure = figure.toLowerCase ();
+                // map [to_x] [to_y] = pawn_figure;
+            }
+
+            function check_pawn_attack (from_figure,to_x, to_y)
+            {
+                // // Check if the piece is a pawn
+                // if (is_pawn(from_figure)) {
+                // // Check if the move is a pawn capture (en passant)
+                //     if (Math.abs(to_y - move_from_y) === 1) {
+                //         // Determine the color of the pawn being moved
+                //         var pawn_color = move_color === 'white' ? 'white' : 'black';
+
+                //         // Perform the pawn attack by updating the target position
+                //         if (pawn_color === 'white') {
+                //         map[to_x][to_y - 1] = "  "; // White pawn attack
+                //         } else {
+                //         map[to_x][to_y + 1] = "  "; // Black pawn attack
+                //         }
+                //     }
+
+                //     // Update the pawn_attack_x and pawn_attack_y values for future use
+                //     pawn_attack_x = move_from_x;
+                //     pawn_attack_y = (move_from_y + to_y) / 2;
+                // }
+
+                if (is_pawn(from_figure))
+                    if (to_x == pawn_attack_x && to_y == pawn_attack_y)
+                        if (move_color == 'white')
+                            map [to_x] [to_y - 1 ] = "  "; //white
+                    else
+                        map [to_x] [to_y + 1] = "  "; //black
+                    //check_pawn_attack(from_figure, to_x, to_y);
+                    pawn_attack_x = -1;
+                    pawn_attack_y = -1;
+                    if (is_pawn (from_figure))
+                        if (Math.abs (to_y - move_from_y)){
+                            pawn_attack_x = move_from_x;
+                            pawn_attack_y = (move_from_y + to_y) / 2 ;
+                        }
+
+            }
+    // function check_pawn_attack (from_figure,to_x, to_y)
+    // {
+    //     if (is_pawn (from_figure))
+    // if (to_x == pawn_attack_x && to_y == pawn_attack_y)
+    //     if (move_color == 'white')
+    //     map [to_x] [to_y - 1 ] = "  "; //white
+    // else
+    // map [to_x] [to_y + 1] = "  "; //black
+
+    // //check_pawn_attack(from_figure, to_x, to_y);
+    // pawn_attack_x = -1;
+    // pawn_attack_y = -1;
+
+    // if (is_pawn (from_figure))
+    // if (Math.abs (to_y - move_from_y))
+    // {
+    // pawn_attack_x = move_from_x;
+    // pawn_attack_y = (move_from_y + to_y) / 2 ;
+
+    // }
+
+    // }
+            function turn_move(){
+                move_color = move_color == "white" ? "black" : "white";
+            }
+
+            function figure_to_html(figure)
+            {
+                switch (figure)
+                {
+                    case "K": return "&#9812;"; case "k" : return "&#9818;";
+                    case "Q": return "&#9812;"; case "q" : return "&#9818;";
+                    case "R": return "&#9812;"; case "r" : return "&#9818;";
+                    case "B": return "&#9812;"; case "b" : return "&#9818;";
+                    case "N": return "&#9812;"; case "n" : return "&#9818;";
+                    case "P": return "&#9812;"; case "p" : return "&#9818;";
+                
+                    default : return "&nbsp;";
+                }
+            }
+
+            // I think this is show_map function
+            function show_map() {
+                var html = "<table border= '1' cellpadding='2' cellspacing='0'>";
+                for (var y = 7; y >= 0; y--) {
+                    html += "'<tr>";
+                    html += "<td>&nbsp;" + y + "&nbsp;</td>";
+                    var color;
+                    for (var x = 0; x <= 7; x++) {
+                        if (top [x] [y] == "  ")
+                            color = ( x + y) % 2 ? "white" : "black";
+                        else
+                            color = top [x] [y] == "1" ? "#aaffaa" : "#ffaaa";
+
+                        html += "<td style= 'height: 50; width: 50; background-color: " + color + 
+                        "; text-align; center; font-size: 40px; color: #000000;' onclick='click_box(" + x + ", " + y + ");'>";
+                        html += figure_to_html (MAP [X][Y]);
+                        html += "</td>";
+                    }
+                    html += "<td style='text-align: center'>" + y + "</td>";
+                    html += "</tr>";
+                }
+                html += "<tr>";
+                for (var x=0; x <= 7; x++){
+                    html +="<td style='text-align: center'>" + x + "</td>";
+                }
+                html += "<td>&nbsp;</td></tr></table>";
+                document.getElementById ("board").innerHtml= html;   
+                
+            }
+            
+
+    // html - <table border= '1' cellpadding='2' cellspacing='0'>;
+    //         for (var y=7; y>= 0; y--){
+    //     html += "'<tr>";
+    //         html += "<td>&nbsp;" + y + "&nbsp;</td>";
+    //         for (var x=0; x <= 7; x++) {
+    //             if (top [X] [y] == "  ")
+    //             color= (x+y) % 2 ?"white" : "black";
+    //             else
+    //             color = top [x] [y] == "1" ? "#aaffaa" : "#ffaaa";
+    //         html += "<td style= 'height: 50; width: 50;"+
+    //         background-color: " + color + ; text-align; center" +
+    //         "font-size": 40; + "color: #000000;" +
+    //         "'onclick='click_box(" + x +", " + y +"); '> ";
+
+    //         HTML += figure_to_html (MAP [X][Y]);
+    //         html += "</tr>";
+    //         for (var x=0; x <= 7; x++)
+    //         html +=< "</td style='text-align: center'>" +x + "</td>;  
+    //         document.getElementById ("board").innerHtml= html;   
+    //         }
+
+            function show_info() {
+                var html = "Turns: " + move_color; 
+                if (is_checkmate ())
+                    html += " CHECKMATE";
+                else if (is_stalemate())
+                    html += "STALEMATE";
+                else if (if_check ())
+                    html += "CHECK";
+                document.getElementById("info").innerHTML = info;
+            }
+
+            function start () {
+                init_map();
+                init_canmove();
+                mark_moves_from_map();
+                show_map();
+            }
+            start ();
+
+        </script>
+        show <map name=""></map>();
+    </body>
+</html>
