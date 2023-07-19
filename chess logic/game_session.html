@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Active Game Session</title>
+  <!-- Add any additional styles specific to the active game session page -->
+</head>
+<body>
+  <!-- Add the content for the active game session page here -->
+  <h1>Welcome to the Active Game Session Page!</h1>
+  <div id="username-display1"></div>
+  <div id="username-display2"></div>
+  
+  <script>
+    // Function to retrieve the username from URL parameters
+    function getUsernameFromURL(param_name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param_name);
+    }
+
+    // Display the username on the page
+    const username1 = getUsernameFromURL('username1');
+    const username2 = getUsernameFromURL('username2');
+    if (username1 && username2) {
+      document.getElementById('username-display1').textContent = 'Hello, ' + username1 + '!';
+      document.getElementById('username-display2').textContent = 'Hello, ' + username2 + '!';
+    } else {
+      document.getElementById('username-display').textContent = 'Username not found!';
+    }
+  </script>
+</body>
+</html>
